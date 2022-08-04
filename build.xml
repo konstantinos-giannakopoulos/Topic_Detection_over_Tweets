@@ -1,0 +1,180 @@
+<?xml version="1.0" ?>
+<project name="TopicDetection" default="usage" basedir="."> 
+  <!-- Loading the property file -->
+  <property file="topicdetection.properties"/>
+  <description>Build file for the project TopicDetection</description>
+  <property name="src.dir" location="src/hk/ust/cse/kostas/topicdetection"/>
+  <property name="build.dir" location="build-${ant.project.name}/classes"/>
+  <property name="dist.dir" location="dist-${ant.project.name}"/>
+  <property name="doc.dir" location="doc-${ant.project.name}"/>    
+  <property name="main-class" value="client.TopicDetection"/>
+  <property name="lib.dir" value="lib" />
+  <property name="xms" value="-Xms1024m"/>
+  <property name="xmx" value="-Xmx4096m"/>
+
+
+  <target name="info">
+    <echo>Project Name is ${ant.project.name}, version ${version}</echo>
+  </target>
+  
+  <target name="usage">
+      <echo message=""/>
+      <echo message="${ant.project.name} build file"/>
+      <echo message="-----------------------------------"/>
+      <echo message=""/>
+      <echo message="Available targets are:"/>
+      <echo message=""/>
+      <echo message="compile          --> Compiles the source code"/>
+      <echo message="deploy           --> Run application as directory"/>
+      <echo message="build-jar        --> Generates the jar file of the distribution"/>
+      <echo message="deployjar        --> Run application as a JAR file"/>
+      <echo message="debug            --> Debugs from the compiled source"/>
+      <echo message="generate-javadoc --> Generates javadoc documentation"/>
+      <echo message="clean            --> Cleans project folders"/>
+      <echo message=""/>
+   </target>
+
+  <target name="init" 
+	  description="Creates project directories">
+    <mkdir dir="${build.dir}"/>
+    <mkdir dir="${dist.dir}"/>    
+    <mkdir dir="${doc.dir}"/>
+  </target>
+
+  <path id="compile.classpath">
+    <fileset dir="${lib.dir}">
+	     <include name="**/*.jar"/>
+    </fileset>
+    <pathelement path="${build.dir}"/>
+  </path>
+
+  <!--
+      <path id="project.classpath">
+	<pathelement location="${build.dir}" />
+	<pathelement location="${lib.dir}" />
+      </path>
+   -->
+
+  <!--classpathref="compile.classpath"-->  
+  <target name="compile" depends="init" 
+	  description="Compiles the source code">
+    <!--<property name="myclasspath" refid="compile.classpath"/>
+     Emit the property to the ant console 
+    <echo message="Classpath = ${myclasspath}"/> -->
+    <javac destdir="${build.dir}"
+	   debug="true" debuglevel="lines,vars,source"
+	   includeantruntime="false"
+	   deprecation="false" optimize="false" failonerror="true">
+      <src path="${src.dir}"/>
+      <classpath refid="compile.classpath"/> <!-- Needed for the jar files -->
+      <compilerarg line="-g"/>
+    </javac>
+  </target>
+
+  <!-- run -->
+  <target name="deploy" depends="compile" 
+	  description="Runs the program">
+    <echo level="warning" message="running" />
+    <java classname="${main-class}"
+	  classpath="${build.dir}">
+      <jvmarg value="${xms}"/> <!-- Maybe useless -->
+      <jvmarg value="${xmx}"/> <!-- Maybe useless -->
+      <classpath refid="compile.classpath"/> <!-- Needed for the jar files -->
+      <arg value="${ant.project.name}"/>
+    </java>
+  </target>
+
+
+  <!-- jar -->
+  <target name="build-jar" depends="compile"
+	  description="Generates the jar file of the distribution">
+    <jar jarfile="${dist.dir}/jar/${ant.project.name}.jar"
+	 basedir="${build.dir}">
+      <zipgroupfileset dir="${lib.dir}" includes="*.jar" excludes=""/>
+<!--      includes="${lib.dir}/*.jar"> 
+	<fileset dir="${lib.dir}" includes="**/*.jar" /> -->
+      <manifest>
+	<attribute name="Main-Class" value="${main-class}"/>
+      </manifest> 
+    </jar>
+  </target>
+
+<!--
+  <target name="archive" depends="compile" 
+	  description="Generates the distribution">
+    <mkdir dir="${dist.dir}/jar"/>
+    <jar jarfile="${dist.dir}/jar/${ant.project.name}.jar" 
+	 basedir="${build.dir}">
+      <zipgroupfileset dir="${lib.dir}" includes="*.jar"/> /> excludes=""/>
+      <manifest>
+	<attribute name="Main-Class" value="${main-class}"/>
+      </manifest>
+    </jar>
+  </target>
+ -->  
+
+  <!-- Runs the jar file of the project (works) -->
+  <target name="deployjar" depends="build-jar" 
+	  description="Runs the jar file">
+    <java jar="${dist.dir}/jar/${ant.project.name}.jar" 
+	  fork="true">
+      <jvmarg value="${xms}"/>
+      <jvmarg value="${xmx}"/>
+      <classpath refid="compile.classpath"/> <!-- Needed for the jar files -->  
+      <arg value="${ant.project.name}"/>
+    </java>
+  </target>
+
+  <!-- Runs application in debug mode. -->
+  <target name="debug" depends="compile" 
+	  description="Debugs from the compiled source">
+    <java classname="${main-class}" 
+	  classpath="${build.dir}"
+	  fork="true"
+	  newenvironment="true">
+      <jvmarg value="-Xdebug"/>
+      <jvmarg value="${xms}"/>           
+      <jvmarg value="${xmx}"/>   
+      <jvmarg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5006"/>
+      <classpath refid="compile.classpath"/> <!-- Needed for the jar files -->
+      <arg value="${ant.project.name}"/>
+    </java>      
+  </target> 
+
+  <!-- Generate javadocs for current project into ${doc.dir} -->
+  <target name="generate-javadoc" depends="init" 
+	  description="Generates documentation">
+    <javadoc packagenames="client.*,database.*,datastructures.*,dictionary.*,
+			   distance.*,lexical.*,methods.*,metrics.*,models.*,
+			   util.*" 
+	     sourcepath="${src.dir}" destdir="${doc.dir}" 
+	     version="true" windowtitle="Topic Detection">
+      <doctitle><![CDATA[= Location Time =]]></doctitle>
+      <bottom>
+        <![CDATA[Copyright © 2014. All Rights Reserved.]]>
+      </bottom>
+      <group title="client packages" packages="client.*"/>
+      <group title="database packages" packages="database.*"/>
+      <group title="datastructures packages" packages="datastructures.*"/>
+      <group title="dictionary packages" packages="dictionary.*"/>
+      <group title="distance packages" packages="distance.*"/>
+      <group title="lexical packages" packages="lexical.*"/>
+      <group title="methods packages" packages="methods.*"/>
+      <group title="metrics packages" packages="metrics.*"/>
+      <group title="models packages" packages="models.*"/>
+      <group title="util packages" packages="util.*"/>
+    </javadoc>
+    <echo message="java doc has been generated!" />
+  </target>
+
+  <!-- Clean project forlders -->
+  <target name="clean"  
+	  description="Cleans output directories">
+    <delete>
+      <fileset dir="${build.dir}">
+        <include name="**/*.class"/>
+      </fileset>
+    </delete>    
+  </target>
+
+</project>
