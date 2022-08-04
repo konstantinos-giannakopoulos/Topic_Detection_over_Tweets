@@ -1,0 +1,115 @@
+package model;
+
+//
+import java.util.List;
+import java.util.ArrayList;
+//
+import cc.mallet.types.Alphabet;
+import cc.mallet.types.FeatureSequence;
+import cc.mallet.types.Multinomial;
+import cc.mallet.util.Randoms;
+//
+import client.Tweet;
+import data.Data;
+
+/**
+ *
+ * @author konstantinos
+ */
+public class MultinomialDistribution {
+
+    Alphabet dictLocation;
+    Multinomial.Estimator estDictLocation;
+    FeatureSequence fsDictLocation;
+
+    Alphabet dictTimezone;
+    Multinomial.Estimator estDictTimezone;
+    FeatureSequence fsDictTimezone;
+
+    List<Tweet> tweets;
+    List<String> locations;
+    List<String> timezones;
+
+    private int locationsSize;
+    
+    public MultinomialDistribution(List<Tweet> tweets) {
+	this.tweets = tweets;
+	this.locations = new ArrayList<String>(Data.getInstance().getLocations());
+	this.timezones = Data.getInstance().getTimezones();
+	this.locationsSize = this.locations.size();
+	
+	//location
+	this.dictLocation = new Alphabet(this.locationsSize);
+	this.estDictLocation  = new Multinomial.LaplaceEstimator(this.dictLocation);
+	this.fsDictLocation = new FeatureSequence(this.dictLocation);
+	// timezone
+	this.dictTimezone = new Alphabet(this.timezones.size());
+	this.estDictTimezone  = new Multinomial.LaplaceEstimator(this.dictTimezone);
+	this.fsDictTimezone = new FeatureSequence(this.dictTimezone);
+
+	createDictionaries();
+    }
+
+    private void createDictionaries() {
+	/* smoothing */
+	for(String location : this.locations) {
+	    this.fsDictLocation.add(this.dictLocation.lookupIndex(location));
+	}
+	for(String timezone : this.timezones) {
+	    this.fsDictTimezone.add(this.dictTimezone.lookupIndex(timezone));	   
+	}
+	this.estDictLocation.increment(this.fsDictLocation);
+	this.estDictTimezone.increment(this.fsDictTimezone);
+	//System.out.println(this.estDictLocation.size());
+	/* tweets */
+	for(Tweet tweet : tweets) {
+	    String location = tweet.location;
+	    String timezone = tweet.time;
+	    //location
+	    fsDictLocation.add(this.dictLocation.lookupIndex(location));
+	    //timezone	  
+	    fsDictTimezone.add(this.dictTimezone.lookupIndex(timezone));
+	}
+	this.estDictLocation.increment(this.fsDictLocation);
+	this.estDictTimezone.increment(this.fsDictTimezone);
+	//System.out.println(this.estDictLocation.size());
+    } //
+
+    public double drawLocation() {
+	// draw from multinomial
+	Multinomial m = this.estDictLocation.estimate();
+	//System.out.println(m.toString());
+	//System.out.println(m.size() == 7);
+	Multinomial.Logged ml = new Multinomial.Logged(m);
+	String sample = draw(m).toString();
+	double prob = m.probability(sample);
+	//System.out.println(sample + "\t" + prob);
+	return prob;
+    } // drawLocation()
+
+    public double drawTimezone() {
+	// draw from multinomial
+	Multinomial m = this.estDictTimezone.estimate();
+	//System.out.println(m.toString());
+	//System.out.println(m.size() == 7);
+	Multinomial.Logged ml = new Multinomial.Logged(m);
+	String sample = draw(m).toString();
+	double prob = m.probability(sample);
+	//System.out.println(sample + "\t" + prob);
+	return prob;
+    } // drawTimezone()
+
+    private Object draw(Multinomial multinomial) {
+	Randoms random = new Randoms(); 
+	Object sample = multinomial.randomObject(random);
+	return sample;
+    } // draw()
+
+    /**
+     * Debug main.
+     */
+    public static void main(String[] args){
+
+    } // Main()
+    
+} // MultinomialDistribution

@@ -1,0 +1,309 @@
+package client;
+
+import java.io.BufferedWriter;
+import java.io.OutputStreamWriter;
+import java.io.FileOutputStream;
+import java.io.IOException;
+//
+import data.Parameters;
+
+/**
+ *
+ * Steps:
+ * [1]: reset() in LocationTime.java
+ * [2]: initParamsLTZ() in Builder.java
+ * [3]: initParamsVK() in Model.java
+ * [4]: update() in Estimator.java
+ * [5]: estimateSum() in Estimator.java
+ * [6]: estimateLog() in Estimator.java
+ */
+public class Statistics {
+
+    private double phi[][];
+    private double theta[][];
+    private double omega[][];
+    private double psi[][];
+
+    // 
+    private double product;
+    private double previousProduct;
+    //private double estimProduct;
+    //private double logValue;
+    private double threshold;
+    
+    private int words; 
+    private int topics; 
+    private int timezones; 
+    private int locations;
+    
+    private BufferedWriter mywriter = null;
+    private int windowID;
+    
+    private static Statistics instance;
+    private Statistics() {
+	try {
+	    mywriter = new BufferedWriter
+		(new OutputStreamWriter
+		 (new FileOutputStream("Statistics-log.txt"), "UTF-8"));
+	    this.threshold = 4.5;
+	} catch(Exception e){
+	    System.out.println("Error in Statistics file: " + e.getMessage());
+	    e.printStackTrace();
+	}
+    } // Statistics()
+    public static Statistics getInstance() {
+	if(instance == null) {
+	    instance = new Statistics();
+	}
+	return instance;
+    } // getInstance()
+
+    public void appendFile(String line) {
+	try {
+	    mywriter.write(line);
+	    mywriter.flush();
+	} catch(IOException e){
+	    System.out.println("Error in Statistics file: " + e.getMessage());
+	    e.printStackTrace();
+	}
+    }
+    
+    /*
+    public double getLogValue() {
+	return this.logValue;
+    } //
+    */
+    public void init() {
+	this.windowID = Parameters.getInstance().getWindowNumber();
+    }
+    
+    public void setDistr(double[][] phi, double[][] theta, double[][] psi, double[][] omega) {
+	setPhi(phi);
+	setTheta(theta);
+	setPsi(psi);
+	setOmega(omega);
+    } // setDistr()
+
+    /**
+     *
+     * [1]
+     * Call in LocationTime.java
+     */
+    public void reset() {
+	this.phi = null;
+	this.theta = null;
+	this.psi = null;
+	this.omega = null;
+	//this.logValue = 0.0;
+	this.previousProduct = 0.0;
+	this.product = 0.0;
+	//this.windowID = windowCounter;
+	//this.estimProduct = 0.0;
+    } // reset()
+
+    /*
+     *
+     * [2]
+     * Call in Builder.java
+     * Related with setPsi(), setOmega()
+     *
+    public void initLTZ(int L, int TZ, double[][] psi, double[][] omega) {
+	this.locations = L;
+	this.timezones = TZ;
+
+	setPsi(psi);
+	setOmega(omega);
+    } // initLTZ()
+
+    /*
+     *
+     * [3]
+     * Call in Model.java
+     * Related with setPhi(), setTheta()
+     *
+    public void initVK(int V, int K, double[][] phi, double[][] theta) {
+	this.words = V;
+	this.topics = K;
+
+	setPhi(phi);
+	setTheta(theta);
+    } // initVK()
+*/
+    /**
+     *
+     * [4]
+     * Call in Estimator.java
+     */
+    public void update() {
+	this.previousProduct = this.product;
+	this.product = 0.0;
+	//this.logValue = 1.0;
+    } // update()
+
+    //public void updateEstim() {
+    //	this.estimProduct = this.product;
+    //	this.product = 0.0;
+    //}
+    
+    /**
+     *
+     * [5]
+     * Call in Estimator.java
+     */
+    //public double estimateSum() {
+    public void estimateSum(int M, int V, int K, int L, int T) {
+	//System.out.println(this.words + "\t" + this.topics + "\t" + this.locations + "\t" + this.timezones);
+	double result = 1.0;
+	for(int m = 0; m < M; m++) {
+	    for(int v = 0; v < V; v++) {
+		for(int k = 0; k < K; k++) {
+		    for(int l = 0; l < L; l++) {
+			//double temp = phi[i][j] * theta[j][k];
+			for(int t = 0; t < T; t++) {
+			    //result += temp * omega[k][l] * psi[l];
+			    result += phi[k][v] * theta[m][k] * omega[t][m] * psi[l][m];
+			}
+		    }
+		}
+	    }
+	}
+	this.product = result;
+	if ( Parameters.getInstance().getWindowIncremental() == false ) {
+	    this.previousProduct = this.product;
+	    Parameters.getInstance().makeWindowIncrementalTrue();
+	    //System.out.println("OK");
+	}
+	//return result;
+    } // estimateSum()
+    /*
+    public void estimateSumEstim(int M, int V, int K, int L, int T) {
+	//System.out.println(this.words + "\t" + this.topics + "\t" + this.locations + "\t" + this.timezones);
+	double result = 1.0;
+	for(int m = 0; m < M; m++) {
+	    for(int v = 0; v < V; v++) {
+		for(int k = 0; k < K; k++) {
+		    for(int l = 0; l < L; l++) {
+			//double temp = phi[i][j] * theta[j][k];
+			for(int t = 0; t < T; t++) {
+			    //result += temp * omega[k][l] * psi[l];
+			    result += phi[k][v] * theta[m][k] * omega[t][m] * psi[l][m];
+			}
+		    }
+		}
+	    }
+	}
+	this.estimProduct = result;
+	//return result;
+    } // estimateSum()
+    */    
+    /**
+     *
+     * [6]
+     * Call in Estimator.java
+     */
+    public void estimateLog() {
+	int previousWindowID = this.windowID - 1; 
+	double prod = 1.0 * (this.previousProduct / this.product);
+	double log = Math.log(prod);
+	//this.logValue = this.previousProduct * log;
+	double logValue = this.previousProduct * log;
+
+	try {
+	    // comparison with previous
+	    System.out.println("[" + this.windowID + " comparison with "+ previousWindowID + "]\t" + logValue + "\n");
+	    mywriter.write(this.windowID + "\t" + logValue + "\n");
+	    if(greaterThanThreshold(logValue)) {
+		Parameters.getInstance().makeWindowIncrementalFalse();
+		mywriter.write("Re-estimation on next ("+ (this.windowID+1) + ") window.\n");
+		System.out.println("Re-estimation on next ("+ (this.windowID+1) + ") window.\n");
+		reset();
+	    } else {
+		update();
+	    }
+	    mywriter.flush();
+	    // comparison with estim
+	    //double prodEstim = 1.0 * (this.estimProduct / this.product);
+	    //double logEstim = Math.log(prodEstim);
+	    //double logValueEstim = this.estimProduct * logEstim;
+	    //System.out.println("[" + this.windowID + " comparison with estim\t" + logValueEstim + "\n");
+	} catch(IOException e){
+	    System.out.println("Error in Statistics file: " + e.getMessage());
+	    e.printStackTrace();
+	    //} finally {
+	    //return logValue;
+	}
+    } // estimateLog()
+
+    /**
+     *
+     * [7]
+     * Call in Estimator.java
+     */
+    public void closeFile() {
+	try {
+	    mywriter.close();
+	} catch(IOException e){
+	    System.out.println("Error in Statistics file: " + e.getMessage());
+	    e.printStackTrace();
+	}
+    } // closeFile()
+
+    /* ********************************************************************** */
+    /* ********************************************************************** */
+    /* ********************************************************************** */
+    /* ********************************************************************** */
+    /* ********************************************************************** */
+
+    public boolean greaterThanThreshold(double logValue) {
+	System.out.println((Math.abs(logValue) + " > " + this.threshold + " = " +
+			    ((Math.abs(logValue) - this.threshold)) + " "
+			    + (Math.abs(logValue) > this.threshold)));
+	if((Math.abs(logValue) - this.threshold) > 0)
+	    return true;
+	else
+	    return false;
+    }
+
+    /** φ : P(w|z) */
+    private void setPhi(double[][] phi) {
+	////this.phi = new double[this.words][this.topics];
+	this.phi = phi;
+	////int a = this.words; int b = this.topics;
+	//System.out.println("--- Phi ---");
+	//for(int i = 0; i < a; i++)
+	//for(int j = 0; j < b; j++)
+	      //System.out.println("(" + i + " of " + a + " ," + j + " of " + b + ")\t" + phi[i][j]);
+    } //
+
+    /** θ : Pr(z|t) */
+    private void setTheta(double[][] theta) {
+	////this.theta = new double[this.topics][this.locations];
+	this.theta = theta;
+	////int a = this.topics; int b = this.locations;
+	//System.out.println("--- Theta ---");
+	//for(int i = 0; i < a; i++) 
+	//for(int j = 0; j < b; j++) 
+	//System.out.println("(" + i + "," + j + ")\t" + theta[i][j]); 
+    } // 
+
+    /** ω : Pr(t|l) */
+    private void setOmega(double[][] omega) {
+	////this.omega = new double[this.locations][this.timezones];
+	this.omega = omega;
+	////int a = this.locations; int b = this.timezones;
+	//System.out.println("--- Omega ---");
+	//for(int i = 0; i < a; i++) 
+	//for(int j = 0; j < b; j++) 
+	//System.out.println("(" + i + "," + j + ")\t" + omega[i][j]); 
+    } //
+
+    /** ψ : Pr(l)*/
+    private void setPsi(double[][] psi) {
+	////this.psi = new double[this.timezones];
+	this.psi = psi;
+	//System.out.println("--- Psi ---");
+	//for(int i = 0; i < this.timezones; i++) 
+	//System.out.println("(" + i + ")\t" + psi[i]); 
+    } //
+    
+} // Statistics

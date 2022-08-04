@@ -1,0 +1,38 @@
+package lda;
+
+import java.io.File;
+import jgibblda.*;
+
+import client.Tweet;
+
+public class InferLDAStrategy implements ILDAStrategy {
+    private static final String CURDIR = System.getProperty("user.dir"); 
+    private static final String LDA_FOLDER = CURDIR + "/ldaFiles";
+
+    public void doRunStrategy() {
+	String infile = "input.txt";
+	String folder = LDA_FOLDER;
+	
+	System.out.println("(1) Infer with LDA started. ");
+
+	LDACmdOption ldaOption = new LDACmdOption(); 	
+	ldaOption.est = false; //
+	ldaOption.estc = false; //
+	ldaOption.inf = true; 
+
+	ldaOption.dir       = folder;
+	ldaOption.dfile     = infile;
+	ldaOption.modelName = "tdi"; 
+
+	ldaOption.alpha    = 0.9;
+	ldaOption.beta     = 0.001;
+	ldaOption.K        = 55;   
+	ldaOption.twords   = 5;
+	ldaOption.niters   = 100;
+	ldaOption.savestep = 50; 	
+
+	Inferencer inferencer = new Inferencer(); 
+	inferencer.init(ldaOption);		       
+	Model newModel = inferencer.inference();	
+    } // doRunStrategy()
+}

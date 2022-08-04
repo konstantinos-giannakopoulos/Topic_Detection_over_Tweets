@@ -1,0 +1,74 @@
+package util.cpu;
+
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadMXBean;
+import com.sun.management.OperatingSystemMXBean;
+
+public final class CPU {
+
+    private final long MILLISECONDS = 1000000L;
+    private final long SECONDS = MILLISECONDS * 1000L;
+    private long startCPUTimeNano;    //taskCPUTimeNano;
+    private long startUserTimeNano;   //taskUserTimeNano;
+    private long startSystemTimeNano; //taskSystemTimeNano;
+
+    public void from() {
+	startCPUTimeNano = getCpuTime();
+	startUserTimeNano = getUserTime();
+	startSystemTimeNano = getSystemTime();
+    } // from()
+
+    public void to() {
+	long taskUserTimeNano = 
+	    getUserTime() - startUserTimeNano;
+	long taskSystemTimeNano  = 
+	    getSystemTime() - startSystemTimeNano;
+	long taskCPUTimeNano =
+	    getCpuTime() - startCPUTimeNano;
+	System.out.println("[P]");
+	System.out.println("[P] ---------------------------" 
+			   + " CPU execution time " 
+			   + "---------------------------");
+	System.out.println("[P] | User time " 
+			   + "(running Application's code):\t"  
+			   + taskUserTimeNano / MILLISECONDS 
+			   + "\t\t\t |");
+	System.out.println("[P] | Total System time " 
+			   + "(running OS code):\t\t" 
+			   + taskSystemTimeNano / MILLISECONDS
+			   + "\t\t\t |");
+	System.out.println("[P] | Total CPU time:\t\t\t\t" 
+			   + taskCPUTimeNano / MILLISECONDS
+			   + "\t\t\t |");
+	System.out.println("[P] ---------------------------" 
+			   + " CPU execution time " 
+			   + "---------------------------");
+	System.out.println("[P]");
+    } // to()
+
+    /** Get CPU time in nanoseconds; 
+	the total time spent using a CPU for the application */
+    private static long getCpuTime( ) {
+        ThreadMXBean bean = ManagementFactory.getThreadMXBean();
+        return bean.isCurrentThreadCpuTimeSupported() ?
+            bean.getCurrentThreadCpuTime() : 0L;
+    }
+
+    /** Get user time in nanoseconds;
+	the time spent running the application's code. */
+    private static long getUserTime() {
+        ThreadMXBean bean = ManagementFactory.getThreadMXBean();
+        return bean.isCurrentThreadCpuTimeSupported() ?
+            bean.getCurrentThreadUserTime() : 0L;
+    }
+
+    /** Get system time in nanoseconds;
+	the time spent running OS code on behalf of the application 
+	(such as for I/O). */
+    private static long getSystemTime() {
+        ThreadMXBean bean = ManagementFactory.getThreadMXBean();
+        return bean.isCurrentThreadCpuTimeSupported() ?
+            (bean.getCurrentThreadCpuTime() - bean.getCurrentThreadUserTime()) : 0L;
+    }
+
+} // CPU

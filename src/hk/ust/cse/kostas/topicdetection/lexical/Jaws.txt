@@ -1,0 +1,270 @@
+/*
+ * Created on October 15, 2015 by kostas 
+ *
+ * This is part of the TweetOntology project. 
+ * Any subsequent modification
+ * of the file should retain this disclaimer. 
+ *
+ * The Hong Kong University of Science and Technology,
+ * Department of Computer Science and Engineering.
+ */
+package lexical;
+
+import edu.smu.tspell.wordnet.*;
+
+import java.util.Set;
+import java.util.HashSet;
+
+public class Jaws {
+    
+    private Set<String> nouns;
+    private Set<String> verbs;
+    private Set<String> adverbs;
+    private Set<String> adjectives;
+
+    public Jaws() {
+	System.setProperty("wordnet.database.dir", "/usr/local/WordNet-3.0/dict");//
+
+	this.nouns = new HashSet<String>();
+	this.verbs = new HashSet<String>();
+	this.adverbs = new HashSet<String>();
+	this.adjectives = new HashSet<String>();
+    }
+
+    public String getPOS(String term) {
+	WordNetDatabase database = WordNetDatabase.getFileInstance(); 
+	Synset[] synsets = database.getSynsets(term);
+	if (synsets.length == 0) return "N/A";
+	for(Synset synset : synsets) {
+	    if(synset.getType().getCode() == 2)
+		return "VERB";
+	}
+	for(Synset synset : synsets) {
+	    if(synset.getType().getCode() == 1)
+		return "NOUN";
+	}	    	       
+	for(Synset synset : synsets) {
+	    if(synset.getType().getCode() == 3)
+		return "ADJECTIVE";		
+	}	    		
+	for(Synset synset : synsets) {
+	    if(synset.getType().getCode() == 4) 
+		return "ADVERB";
+	}	    	
+	return "N/A";	
+    }
+
+    public String[] getLemma(String term) {
+	WordNetDatabase database = WordNetDatabase.getFileInstance(); 
+	//SynsetTypeConverter conv = new SynsetTypeConverter();
+	Synset[] synsets = database.getSynsets(term);
+	if (synsets.length == 0) return null;
+	String[] result = null;
+	SynsetType type = null;
+	for(Synset synset : synsets) {
+	    if(synset.getType().getCode() == 2) { //verb
+		type = synset.getType();
+		break;
+	    }
+	}
+	if(type == null) {
+	    for(Synset synset : synsets) {
+		if(synset.getType().getCode() == 1) { //noun
+		    type = synset.getType();
+		    break;
+		}
+	    }	    
+	}
+	if(type == null) {
+	    for(Synset synset : synsets) {
+		if(synset.getType().getCode() == 3) { //adjective
+		    type = synset.getType();
+		    break;
+		}
+	    }	    
+	}
+	if(type == null) {
+	    for(Synset synset : synsets) {
+		if(synset.getType().getCode() == 4) { //adverb
+		    type = synset.getType();
+		    break;
+		}
+	    }	    
+	}
+	if(type == null)
+	    return result;
+	//System.out.println(synset);
+	//System.out.println(edu.smu.tspell.wordnet.impl.file.SynsetTypeConverter.getType(synset.getCode()));
+	if(type.getCode() == 2) 
+	    result = edu.smu.tspell.wordnet.impl.file.InflectionData.getInstance().getBaseForms(term,SynsetType.VERB);
+	else if(type.getCode() == 1) 	    
+	    result = edu.smu.tspell.wordnet.impl.file.InflectionData.getInstance().getBaseForms(term,SynsetType.NOUN);
+	//result = database.getBaseFormCandidates(term,SynsetType.NOUN);
+	else if(type.getCode() == 3) 
+	    result = edu.smu.tspell.wordnet.impl.file.InflectionData.getInstance().getBaseForms(term,SynsetType.ADJECTIVE);
+	//result = database.getBaseFormCandidates(term,SynsetType.ADJECTIVE);
+	else if(type.getCode() == 4) 	    
+	    result = edu.smu.tspell.wordnet.impl.file.InflectionData.getInstance().getBaseForms(term,SynsetType.ADVERB);
+	//result = database.getBaseFormCandidates(term,SynsetType.ADVERB);
+	return result;
+    }
+
+    public Set<String> getSimilarTermsTo(String term) {
+	Set<String> terms = new HashSet<String>();
+
+	Set<String> nouns = new HashSet<String>();
+	Set<String> verbs = new HashSet<String>();
+	Set<String> adverbs = new HashSet<String>();
+	Set<String> adjectives = new HashSet<String>();
+
+	//final String term = "widespread";
+	WordNetDatabase database = WordNetDatabase.getFileInstance(); 
+
+	//System.out.println("\n\n\n****** Every term *******");
+	Synset synset;
+	Synset[] synsets = database.getSynsets(term);//, SynsetType.NOUN); 
+
+	//System.out.println("For the term: " + term);
+
+	//System.out.println("Words that share the same meaning with " + term);
+	for (int i = 0; i < synsets.length; i++) { 
+	    synset = synsets[i];
+	    //System.out.println("------------\nWord no " + i);
+	    //System.out.println(synset.getWordForms()[0]);//nounSynset	   
+
+	    if(synset instanceof NounSynset) {
+		//System.out.println("->> As NOUN -");
+		NounSynset nounSynset = (NounSynset)synset;
+		//
+		//System.out.println("-- Hyponyms");
+		NounSynset[] hyponyms; 
+		hyponyms = nounSynset.getHyponyms();//
+		//System.out.println("-- -- Total " + hyponyms.length);
+		for(int j = 0; j < hyponyms.length; j++) {
+		    NounSynset hypo = hyponyms[j];		  
+		    nouns.add(hypo.getWordForms()[0]);
+		}
+		//
+		//System.out.println("-- Hypernyms");
+		NounSynset[] hypernyms; 
+		hypernyms = nounSynset.getHypernyms();
+		//System.out.println("-- -- Total " + hypernyms.length); 
+		for(int j = 0; j < hypernyms.length; j++) {
+		    NounSynset hyper = hypernyms[j];
+		    nouns.add(hyper.getWordForms()[0]);
+		}
+	    } 
+	    //System.out.println("##################################");
+	    if(synset instanceof VerbSynset) {
+		//System.out.println("->> As VERB -");
+		VerbSynset verbSynset = (VerbSynset)synset;
+		//
+		//System.out.println("-- Topics");
+		NounSynset[] topics; 
+		topics = verbSynset.getTopics();//
+		//System.out.println("-- -- Total " + topics.length);
+		for(int j = 0; j < topics.length; j++) {
+		    NounSynset topic = topics[j];
+		    //System.out.println(topic.getWordForms()[0]);
+		    verbs.add(topic.getWordForms()[0]);
+		}
+		//
+		//System.out.println("-- Verbs with similar meaning");
+		VerbSynset[] verbsgroup; 
+		verbsgroup = verbSynset.getVerbGroup();//
+		//System.out.println("-- -- Total " + verbsgroup.length);
+		for(int j = 0; j < verbsgroup.length; j++) {
+		    VerbSynset verbgroup = verbsgroup[j];
+		    //System.out.println(verbgroup.getWordForms()[0]);		
+		    verbs.add(verbgroup.getWordForms()[0]);
+		}
+		//
+		/*
+		//System.out.println("-- Hypernyms");
+		VerbSynset[] verbhypernyms; 
+		verbhypernyms = verbSynset.getHypernyms();
+		//System.out.println("-- -- Total " + verbhypernyms.length); 
+		for(int j = 0; j < verbhypernyms.length; j++) {
+		    VerbSynset verbhypernym = verbhypernyms[j];
+		    //System.out.println(verbhypernym.getWordForms()[0]);
+		    verbs.add(verbhypernym.getWordForms()[0]);
+		}
+		*/
+	    }
+	    //System.out.println("##################################");
+	    if(synset instanceof AdjectiveSynset) {
+		//System.out.println("->> As ADJECTIVE -");
+		AdjectiveSynset adjectiveSynset = (AdjectiveSynset)synset;
+		//
+		//System.out.println("-- Topics");
+		NounSynset[] topics; 
+		topics = adjectiveSynset.getTopics();//
+		//System.out.println("-- -- Total " + topics.length);
+		for(int j = 0; j < topics.length; j++) {
+		    NounSynset topic = topics[j];
+		    //System.out.println(topic.getWordForms()[0]);
+		    adjectives.add(topic.getWordForms()[0]);
+		}
+		//
+		//System.out.println("-- Adjectives with similar meaning");
+		AdjectiveSynset[] adjectivesgroup; 
+		adjectivesgroup = adjectiveSynset.getSimilar();//
+		//System.out.println("-- -- Total " + adjectivesgroup.length);
+		for(int j = 0; j < adjectivesgroup.length; j++) {
+		    AdjectiveSynset adjectivegroup = adjectivesgroup[j];
+		    //System.out.println(adjectivegroup.getWordForms()[0]);		
+		    adjectives.add(adjectivegroup.getWordForms()[0]);
+		}
+	    }
+	    //System.out.println("##################################");
+	    if(synset instanceof AdverbSynset) {
+		//System.out.println("->> As ADVERB -");
+		AdverbSynset adverbSynset = (AdverbSynset)synset;
+		//
+		//System.out.println("-- Topics");
+		NounSynset[] topics; 
+		topics = adverbSynset.getTopics();//
+		//System.out.println("-- -- Total " + topics.length);
+		for(int j = 0; j < topics.length; j++) {
+		    NounSynset topic = topics[j];
+		    //System.out.println(topic.getWordForms()[0]);
+		    adverbs.add(topic.getWordForms()[0]);
+		}
+	    }
+	}
+	//System.out.println("Results for the term: " + term);
+	//System.out.println("Nouns:\t" + nouns);
+	//System.out.println("Verbs:\t" + verbs);
+	//System.out.println("Adjectives:\t" + adjectives);
+	//System.out.println("Adverbs:\t" + adverbs);
+
+	terms.addAll(nouns);
+	terms.addAll(verbs);
+	terms.addAll(adjectives);
+	terms.addAll(adverbs);
+
+	return terms;
+    }
+
+
+    /**
+     * Debug main.
+     */
+    public static void main(String[] args) {
+	Jaws jaws = new Jaws();
+
+	String word = "did";
+
+	String pos = jaws.getPOS(word);
+	String[] lemmata = jaws.getLemma(word);
+	
+	System.out.println("POS: " + pos);
+	System.out.println("Lemmata: ");
+	if (lemmata != null) {
+	    for(String lemma : lemmata) {
+		System.out.print(lemma + "\t");
+	    }
+	}
+    }
+
+}

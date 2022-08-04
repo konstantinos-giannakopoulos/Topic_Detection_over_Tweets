@@ -1,0 +1,9 @@
+package lda;
+
+import java.util.List;
+
+import model.MultinomialDistribution;
+
+public interface ILDAStrategy {
+    public void doRunStrategy(String modelName, MultinomialDistribution multDistr);//, List<String> locations, List<String> timezones); 
+}

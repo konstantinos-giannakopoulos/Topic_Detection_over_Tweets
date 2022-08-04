@@ -1,0 +1,50 @@
+package data;
+
+import java.util.List;
+import java.util.ArrayList;
+
+/**
+ *
+ *
+ * 
+ */
+public class Data {
+
+    private List<String> timezones;
+    private List<String> locations;
+
+    private static Data instance;
+    private Data() {
+	this.timezones = new ArrayList<String>();
+	this.locations = new ArrayList<String>();
+    } // Data()
+    public static Data getInstance() {
+	if(instance == null) {
+	    instance = new Data();
+	}
+	return instance;
+    } // getInstance()
+
+    /**
+     * Return lists.
+     */ 
+    public List<String> getTimezones() {
+	return this.timezones;
+    }
+    
+    public List<String> getLocations() {
+	return this.locations;
+    }	  
+
+    /**
+     * Add new elements.
+     */
+    public void addTimezone(String t) {
+	this.timezones.add(t);
+    }
+
+    public void addLocation(String l) {
+	this.locations.add(l);
+    }   
+    
+} // Data
